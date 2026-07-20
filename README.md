@@ -48,6 +48,15 @@ journalctl -u vk-notify -f
 
 Если на VPS другой пользователь/пути — поправьте `User=` и пути в `vk-notify.service`.
 
+## Обновление кода
+
+```bash
+./deploy.sh          # залить vk_notify.py, перезапустить, показать статус и логи
+./deploy.sh --full   # + requirements.txt и systemd-юнит (когда менялись)
+```
+
+Хост по умолчанию зашит в скрипте, переопределяется: `DEPLOY_HOST=root@1.2.3.4 ./deploy.sh`.
+
 ## Настройки (.env)
 
 | Переменная | Что делает |
