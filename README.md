@@ -29,7 +29,8 @@ VK  ◀──messages.send──  ваш сервер  ◀──reply──  Tel
 
 ## 🚀 Установка
 
-На сервере (Ubuntu/Debian, от root) — одна команда:
+На сервере (любой Linux с systemd: Ubuntu/Debian, RHEL/Alma/Rocky/Fedora, Arch,
+openSUSE; от root) — одна команда:
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/BigDrugs/vk-notify/main/setup.sh)

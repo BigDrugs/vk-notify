@@ -15,9 +15,29 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
+if ! command -v systemctl >/dev/null; then
+    echo "Нужен systemd (Alpine/OpenRC не поддерживаются этим скриптом)." >&2
+    echo "Можно запустить вручную: python3 vk_notify.py в любом супервизоре." >&2
+    exit 1
+fi
+
 echo "== vk-notify: установка =="
-apt-get update -qq >/dev/null 2>&1 || true
-apt-get install -y -qq git python3 python3-venv >/dev/null
+if command -v apt-get >/dev/null; then
+    apt-get update -qq >/dev/null 2>&1 || true
+    apt-get install -y -qq git python3 python3-venv >/dev/null
+elif command -v dnf >/dev/null; then
+    dnf install -y -q git python3 >/dev/null 2>&1
+elif command -v yum >/dev/null; then
+    yum install -y -q git python3 >/dev/null 2>&1
+elif command -v pacman >/dev/null; then
+    pacman -Sy --noconfirm --needed --quiet git python >/dev/null
+elif command -v zypper >/dev/null; then
+    zypper --quiet --non-interactive install git python3 >/dev/null
+else
+    echo "Неизвестный пакетный менеджер — ставлю как есть (нужны git и python3 3.10+)"
+fi
+command -v git >/dev/null || { echo "git не установлен" >&2; exit 1; }
+command -v python3 >/dev/null || { echo "python3 не установлен" >&2; exit 1; }
 
 if [[ -d $APP_DIR/.git ]]; then
     git -C "$APP_DIR" pull -q
