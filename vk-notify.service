@@ -5,10 +5,10 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=ubuntu
-WorkingDirectory=/home/ubuntu/vk-notify
-EnvironmentFile=/home/ubuntu/vk-notify/.env
-ExecStart=/home/ubuntu/vk-notify/.venv/bin/python /home/ubuntu/vk-notify/vk_notify.py
+User=root
+WorkingDirectory=/opt/vk-notify
+EnvironmentFile=/opt/vk-notify/.env
+ExecStart=/opt/vk-notify/.venv/bin/python /opt/vk-notify/vk_notify.py
 Restart=always
 RestartSec=10
 
@@ -16,7 +16,7 @@ RestartSec=10
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
-ProtectHome=false
+ProtectHome=true
 
 [Install]
 WantedBy=multi-user.target

@@ -20,7 +20,7 @@ echo "syntax OK, deploying to $HOST..."
 if [[ "${1:-}" == "--full" ]]; then
     tar czf - vk_notify.py requirements.txt vk-notify.service | ssh "$HOST" "
         set -e
-        tar xzf - -C $APP_DIR
+        tar xzf - --no-same-owner -C $APP_DIR
         mv $APP_DIR/vk-notify.service /etc/systemd/system/
         $APP_DIR/.venv/bin/pip install -q -r $APP_DIR/requirements.txt
         systemctl daemon-reload

@@ -26,27 +26,20 @@
 3. Узнайте свой `TG_CHAT_ID`: напишите @userinfobot, либо откройте
    `https://api.telegram.org/bot<TOKEN>/getUpdates` и возьмите `message.chat.id`.
 
-## 3. Деплой на VPS
+## 3. Установка на VPS
+
+Одной командой с локальной машины (ставит в `/opt/vk-notify`: venv, зависимости,
+systemd с автозапуском):
 
 ```bash
-sudo mkdir -p /home/ubuntu/vk-notify && cd /home/ubuntu/vk-notify
-# скопируйте vk_notify.py, requirements.txt, .env.example сюда
-cp .env.example .env && nano .env   # вписать токены
-
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-
-# проверка вручную: должно прийти "✅ vk-notify запущен"
-.venv/bin/python vk_notify.py
-
-# автозапуск
-sudo cp vk-notify.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now vk-notify
-journalctl -u vk-notify -f
+cp .env.example .env   # вписать токены
+./install.sh           # или DEPLOY_HOST=root@1.2.3.4 ./install.sh
 ```
 
-Если на VPS другой пользователь/пути — поправьте `User=` и пути в `vk-notify.service`.
+Вручную то же самое: скопировать `vk_notify.py`, `requirements.txt`, `.env` в
+`/opt/vk-notify`, создать venv и поставить зависимости, положить
+`vk-notify.service` в `/etc/systemd/system/` и включить сервис. Другой
+пользователь/пути — поправьте `User=` и пути в `vk-notify.service`.
 
 ## Обновление кода
 
