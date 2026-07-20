@@ -4,13 +4,16 @@
 #   ./deploy.sh          — залить vk_notify.py и перезапустить сервис
 #   ./deploy.sh --full   — также requirements.txt + vk-notify.service (+ pip install)
 #
-# Другая нода: DEPLOY_HOST=root@1.2.3.4 ./deploy.sh
+# Хост: переменная DEPLOY_HOST=root@1.2.3.4 или файл .deploy-host рядом со скриптом.
 set -euo pipefail
 
-HOST="${DEPLOY_HOST:-root@1.2.3.4}"
-APP_DIR=/opt/vk-notify
-
 cd "$(dirname "$0")"
+HOST="${DEPLOY_HOST:-$(cat .deploy-host 2>/dev/null || true)}"
+if [[ -z "$HOST" ]]; then
+    echo "Укажи ноду: DEPLOY_HOST=root@1.2.3.4 $0 (или запиши в файл .deploy-host)" >&2
+    exit 1
+fi
+APP_DIR=/opt/vk-notify
 
 PY=python3
 command -v python3 >/dev/null || PY=python

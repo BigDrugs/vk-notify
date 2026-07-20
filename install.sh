@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
 # Установка vk-notify на чистую ноду одним запуском (с локальной машины).
 #
-#   ./install.sh                          — поставить на хост по умолчанию
-#   DEPLOY_HOST=root@1.2.3.4 ./install.sh — на другую ноду
+#   DEPLOY_HOST=root@1.2.3.4 ./install.sh — либо хост из файла .deploy-host
 #
 # Требуется локальный .env рядом со скриптом: cp .env.example .env + вписать токены.
 # Один SSH-коннект = один ввод пароля. Повторный запуск безопасен (переустановка).
 set -euo pipefail
 
-HOST="${DEPLOY_HOST:-root@1.2.3.4}"
 APP_DIR=/opt/vk-notify
 
 cd "$(dirname "$0")"
+HOST="${DEPLOY_HOST:-$(cat .deploy-host 2>/dev/null || true)}"
+if [[ -z "$HOST" ]]; then
+    echo "Укажи ноду: DEPLOY_HOST=root@1.2.3.4 $0 (или запиши в файл .deploy-host)" >&2
+    exit 1
+fi
 
 if [[ ! -f .env ]]; then
     echo "Нет .env — выполни: cp .env.example .env и впиши токены" >&2

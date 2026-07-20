@@ -54,7 +54,8 @@ cp .env.example .env   # вписать токены
 ./deploy.sh --full   # + requirements.txt и systemd-юнит (когда менялись)
 ```
 
-Хост по умолчанию зашит в скрипте, переопределяется: `DEPLOY_HOST=root@1.2.3.4 ./deploy.sh`.
+Хост задаётся переменной `DEPLOY_HOST=root@1.2.3.4` или один раз в файле
+`.deploy-host` рядом со скриптом (в git не попадает).
 
 ## Настройки (.env)
 
