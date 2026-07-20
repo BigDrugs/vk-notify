@@ -1,6 +1,6 @@
 # 📬 vk-notify
 
-**Пуш-уведомления ВКонтакте на iPhone — через Telegram-бота.**
+**Пуш-уведомления ВКонтакте на ios — через Telegram-бота.**
 
 ![Python](https://img.shields.io/badge/python-3.10+-blue)
 ![Platform](https://img.shields.io/badge/платформа-Linux%20%2B%20systemd-lightgrey)
@@ -72,7 +72,7 @@ systemctl restart vk-notify       # перезапуск
 `deploy.sh` (заливка одного файла) / `install.sh` (полная установка) с локальной
 машины; хост задаётся `DEPLOY_HOST=root@1.2.3.4` или файлом `.deploy-host`.
 
-На iPhone: закрепите чат с ботом и поставьте ему отдельный звук — уведомления VK
+На ios: закрепите чат с ботом и поставьте ему отдельный звук — уведомления VK
 будет не спутать с остальным Telegram.
 
 ## 🗑 Удаление
