@@ -1,0 +1,22 @@
+[Unit]
+Description=VK to Telegram notification bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/vk-notify
+EnvironmentFile=/home/ubuntu/vk-notify/.env
+ExecStart=/home/ubuntu/vk-notify/.venv/bin/python /home/ubuntu/vk-notify/vk_notify.py
+Restart=always
+RestartSec=10
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=false
+
+[Install]
+WantedBy=multi-user.target
