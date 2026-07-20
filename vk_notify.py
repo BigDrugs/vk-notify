@@ -388,6 +388,38 @@ def long_poll_loop():
 
 # --- TG -> VK (ответы) ---
 
+def tg_file_url(file_id):
+    f = tg_api("getFile", file_id=file_id)
+    if not f:
+        return None
+    return f"https://api.telegram.org/file/bot{TG_BOT_TOKEN}/{f['file_path']}"
+
+
+def upload_photo_to_vk(peer_id, file_id):
+    """Скачивает фото у Telegram, заливает в VK, возвращает attachment-строку."""
+    url = tg_file_url(file_id)
+    if not url:
+        raise RuntimeError("getFile failed")
+    img = requests.get(url, timeout=60)
+    img.raise_for_status()
+    try:
+        up = vk("photos.getMessagesUploadServer", peer_id=peer_id)
+    except VkApiError:
+        up = vk("photos.getMessagesUploadServer")
+    r = requests.post(up["upload_url"],
+                      files={"photo": ("photo.jpg", img.content, "image/jpeg")},
+                      timeout=60)
+    r.raise_for_status()
+    data = r.json()
+    if not data.get("photo") or data["photo"] in ("[]", ""):
+        raise RuntimeError("VK upload rejected the photo")
+    saved = vk("photos.saveMessagesPhoto", server=data["server"],
+               photo=data["photo"], hash=data["hash"])[0]
+    att = f"photo{saved['owner_id']}_{saved['id']}"
+    if saved.get("access_key"):
+        att += f"_{saved['access_key']}"
+    return att
+
 def confirm_sent(tg_message_id):
     ok = tg_api(
         "setMessageReaction",
@@ -400,14 +432,16 @@ def confirm_sent(tg_message_id):
 
 
 def handle_tg_message(msg):
-    text = (msg.get("text") or "").strip()
+    text = (msg.get("text") or msg.get("caption") or "").strip()
+    photo_sizes = msg.get("photo") or []
     message_id = msg["message_id"]
     reply_to = msg.get("reply_to_message")
 
     if not reply_to:
         if not text.startswith("/start"):
             tg_reply(message_id,
-                     "Чтобы ответить в VK — отправь текст реплаем (reply) на уведомление.")
+                     "Чтобы ответить в VK — отправь текст или фото реплаем (reply) "
+                     "на уведомление.")
         return
 
     peer_id = reply_target(reply_to["message_id"])
@@ -416,19 +450,29 @@ def handle_tg_message(msg):
                  "⚠️ Не знаю, кому это отправить: мост перезапускался и потерял привязку. "
                  "Ответь на уведомление, пришедшее после перезапуска.")
         return
-    if not text:
-        tg_reply(message_id, "⚠️ В VK могу отправить только текст.")
+    if not text and not photo_sizes:
+        tg_reply(message_id, "⚠️ В VK могу отправить текст или фото.")
         return
 
+    attachment = ""
+    if photo_sizes:
+        try:
+            # последний элемент — максимальный размер
+            attachment = upload_photo_to_vk(peer_id, photo_sizes[-1]["file_id"])
+        except Exception as e:
+            tg_reply(message_id, f"⚠️ Не удалось загрузить фото в VK: {html.escape(str(e))}")
+            logger.warning("Photo upload for peer %s failed: %s", peer_id, e)
+            return
+
     try:
-        vk("messages.send", peer_id=peer_id, message=text,
+        vk("messages.send", peer_id=peer_id, message=text, attachment=attachment,
            random_id=random.randint(1, 2**31))
     except Exception as e:
         tg_reply(message_id, f"⚠️ VK не принял сообщение: {html.escape(str(e))}")
         logger.warning("Reply to peer %s failed: %s", peer_id, e)
         return
     confirm_sent(message_id)
-    logger.info("Replied to peer %s from Telegram", peer_id)
+    logger.info("Replied to peer %s from Telegram (photo=%s)", peer_id, bool(attachment))
 
 
 def tg_updates_loop():
