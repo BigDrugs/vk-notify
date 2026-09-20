@@ -57,8 +57,10 @@ if [[ ! -f $APP_DIR/.env ]]; then
     echo
     echo "Нужны три значения (Enter после каждого):"
     echo
-    echo "1) VK-токен: открой vkhost.github.io → Kate Mobile → «Разрешить»,"
-    echo "   из адресной строки скопируй access_token=... (до &)"
+    echo "1) VK-токен: vkhost.github.io → «Настройки» → тип «Пользователь»,"
+    echo "   ID приложения 6463690 («Маруся»), права: Сообщения + Доступ в любое время."
+    echo "   «Получить» → «Разрешить» → скопируй access_token=... (до &expires_in)."
+    echo "   Kate Mobile больше не работает — заблокирован VK ID."
     read -rp "VK_TOKEN: " VK_TOKEN
     echo
     echo "2) Токен бота: в Telegram @BotFather → /newbot"

@@ -504,7 +504,8 @@ def tg_updates_loop():
 
 
 RENEW_TOKEN_HINT = (
-    "Получи новый токен на vkhost.github.io (Kate Mobile), впиши в VK_TOKEN "
+    "Получи новый токен: vkhost.github.io → Настройки → ID приложения 6463690 "
+    "(«Маруся»), права «Сообщения» + «Доступ в любое время». Впиши в VK_TOKEN "
     "в /opt/vk-notify/.env и выполни: systemctl restart vk-notify."
 )
 TOKEN_DEAD_ALERT = (
