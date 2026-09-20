@@ -45,6 +45,13 @@ VK_V = "5.199"
 CHAT_PEER_BASE = 2_000_000_000
 FLAG_OUTBOX = 2
 VK_AUTH_ERROR_CODES = {5}
+# 6 — слишком часто, 9 — Flood control, 29 — лимит методов: давить запросами нельзя,
+# иначе VK ужесточает бан. Отступаем по нарастающей.
+VK_BACKOFF_ERROR_CODES = {6, 9, 29}
+BACKOFF_START_SEC = 30
+BACKOFF_MAX_SEC = 1800
+# если VK недоступен дольше этого — предупредить в Telegram (молчаливых поломок быть не должно)
+ALERT_AFTER_DOWN_SEC = 300
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger("vk-notify")
@@ -496,18 +503,34 @@ def tg_updates_loop():
                 logger.exception("Failed to handle TG message")
 
 
+RENEW_TOKEN_HINT = (
+    "Получи новый токен на vkhost.github.io (Kate Mobile), впиши в VK_TOKEN "
+    "в /opt/vk-notify/.env и выполни: systemctl restart vk-notify."
+)
 TOKEN_DEAD_ALERT = (
     "⚠️ <b>Токен VK перестал работать</b> (авторизация отклонена — обычно после смены "
-    "пароля или «завершить все сеансы»).\n\nПолучи новый на vkhost.github.io (Kate Mobile), "
-    "обнови VK_TOKEN в /opt/vk-notify/.env и выполни: systemctl restart vk-notify.\n"
-    "Проверяю снова каждые 10 минут."
+    "пароля или «завершить все сеансы»).\n\n" + RENEW_TOKEN_HINT
+)
+FLOOD_ALERT = (
+    "⚠️ <b>VK ограничил токен</b> (Flood control). Уведомления не приходят.\n\n"
+    "Запросы к VK замедлены, жду снятия лимита. Если не отпустит за несколько часов — "
+    + RENEW_TOKEN_HINT
 )
 
 
 def main():
     threading.Thread(target=tg_updates_loop, daemon=True).start()
-    auth_alerted = False
     started = False
+    alerted = None          # какой алерт уже отправлен: None | "auth" | "flood" | "other"
+    down_since = None       # когда VK начал отвечать ошибкой
+    backoff = BACKOFF_START_SEC
+
+    def alert_once(kind, text):
+        nonlocal alerted
+        if alerted != kind and down_since and time.time() - down_since >= ALERT_AFTER_DOWN_SEC:
+            tg_send(text)
+            alerted = kind
+
     while True:
         try:
             me = vk("users.get")[0]
@@ -516,23 +539,32 @@ def main():
                 tg_send("✅ vk-notify запущен: уведомления из VK будут приходить сюда. "
                         "Reply на уведомление = ответ в VK.")
                 started = True
-            if auth_alerted:
-                tg_send("✅ Токен VK снова работает.")
-                auth_alerted = False
+            if alerted:
+                downtime = int((time.time() - down_since) / 60) if down_since else 0
+                tg_send(f"✅ Связь с VK восстановлена (не работало ~{downtime} мин).")
+            alerted, down_since, backoff = None, None, BACKOFF_START_SEC
             long_poll_loop()
-        except VkApiError as e:
-            if e.code in VK_AUTH_ERROR_CODES:
+        except Exception as e:
+            if down_since is None:
+                down_since = time.time()
+            code = e.code if isinstance(e, VkApiError) else None
+
+            if code in VK_AUTH_ERROR_CODES:
                 logger.error("VK auth failed: %s", e)
-                if not auth_alerted:
-                    tg_send(TOKEN_DEAD_ALERT)
-                    auth_alerted = True
-                time.sleep(600)
+                alert_once("auth", TOKEN_DEAD_ALERT)
+                delay = 600
+            elif code in VK_BACKOFF_ERROR_CODES:
+                logger.error("VK rate limit: %s (следующая попытка через %ss)", e, backoff)
+                alert_once("flood", FLOOD_ALERT)
+                delay = backoff
+                backoff = min(backoff * 2, BACKOFF_MAX_SEC)
             else:
-                logger.exception("VK API error, restarting in 15s")
-                time.sleep(15)
-        except Exception:
-            logger.exception("Long Poll loop crashed, restarting in 15s")
-            time.sleep(15)
+                logger.exception("VK error, следующая попытка через %ss", backoff)
+                alert_once("other", f"⚠️ vk-notify: сбой связи с VK — {html.escape(str(e))}")
+                delay = backoff
+                backoff = min(backoff * 2, BACKOFF_MAX_SEC)
+
+            time.sleep(delay + random.uniform(0, 5))
 
 
 if __name__ == "__main__":
